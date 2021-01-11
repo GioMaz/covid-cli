@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 import requests
 import json
-from termcolor import colored
-from tabulate import tabulate
 import datetime
 import dateutil.parser
+import os
+from termcolor import colored
+from tabulate import tabulate
+
+logdir = f'{os.getenv("HOME")}/.covid-cli/'
+logfile = f'{logdir}log'
 
 def ordina(regioni):
 	ordinate = [regioni[0]]
@@ -34,13 +38,25 @@ def printNomeCasi(regioni):
 		else:
 			table.append([index , colored(nome, 'red'), positivi, nuovi, colored(variazione, 'red'), colored(variazione_perc, 'red')])
 	headers = ['N°', 'Nome', 'Positivi', 'Nuovi', 'Var', 'Var(%)']
-	print(tabulate(table, headers) + '\n')
+	out = tabulate(table, headers) + '\n'
 	date = dateutil.parser.parse(regioni[len(regioni)-1]['data'])
 	finaldate = date.strftime('%d/%m/%Y')
 	finalhour = date.strftime('%H:%M')
-	print(f'Ultimo aggioramento il {finaldate} alle {finalhour}')
+	out += f'Ultimo aggioramento del {finaldate} alle {finalhour}'
+	os.system('clear')
+	print(out)
+	with open(logfile, 'w') as txt:
+		txt.write(out)
 
 def main():
+	if not os.path.exists(logdir):
+		os.makedirs(logdir)
+
+	os.system('clear')
+	if os.path.isfile(logfile):
+		with open(logfile, 'r') as txt:
+			print(txt.read())
+
 	url = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-json/dpc-covid19-ita-regioni-latest.json'
 	page = requests.get(url).text
 	regioni = json.loads(page) 
@@ -51,6 +67,7 @@ if __name__ == '__main__':
 	main()
 
 # esempio di dati di una regione (Abruzzo '2020-11-08T17:00:00')
+# 
 # {
 #         "data": "2020-11-08T17:00:00",
 #         "stato": "ITA",
