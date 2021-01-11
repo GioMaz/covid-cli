@@ -1,0 +1,76 @@
+#!/usr/local/opt/python@3.9/bin/python3.9
+# -*- coding: utf-8 -*-
+import requests
+import json
+from termcolor import colored
+from tabulate import tabulate
+import datetime
+import dateutil.parser
+
+def ordina(regioni):
+	ordinate = [regioni[0]]
+	for regione in regioni:
+		for i in range(0, len(ordinate)):
+			if regione['totale_casi'] > ordinate[i]['totale_casi'] and regione not in ordinate:
+				ordinate.insert(i, regione)
+	return ordinate
+
+def printNome(regioni):
+	for regione in regioni:
+		print(regione['denominazione_regione'])
+
+def printNomeCasi(regioni):
+	table = []
+	for regione in regioni:
+		index = regioni.index(regione) + 1
+		nome = regione['denominazione_regione']
+		# totale_positivi una volta era totale_casi
+		positivi = regione['totale_positivi']
+		nuovi = regione['nuovi_positivi']
+		variazione = regione['variazione_totale_positivi']
+		variazione_perc = '{:.1f}'.format(variazione/positivi * 100)
+		if variazione < 0:
+			table.append([index , colored(nome, 'green'), positivi, nuovi, colored(variazione, 'green'), colored(variazione_perc, 'green')])
+		else:
+			table.append([index , colored(nome, 'red'), positivi, nuovi, colored(variazione, 'red'), colored(variazione_perc, 'red')])
+	headers = ['N°', 'Nome', 'Positivi', 'Nuovi', 'Var', 'Var(%)']
+	print(tabulate(table, headers) + '\n')
+	date = dateutil.parser.parse(regioni[len(regioni)-1]['data'])
+	finaldate = date.strftime('%d/%m/%Y')
+	finalhour = date.strftime('%H:%M')
+	print(f'Ultimo aggioramento il {finaldate} alle {finalhour}')
+
+def main():
+	url = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-json/dpc-covid19-ita-regioni-latest.json'
+	page = requests.get(url).text
+	regioni = json.loads(page) 
+	ordinate = ordina(regioni)
+	printNomeCasi(ordinate)
+
+if __name__ == '__main__':
+	main()
+
+# esempio di dati di una regione (Abruzzo '2020-11-08T17:00:00')
+# {
+#         "data": "2020-11-08T17:00:00",
+#         "stato": "ITA",
+#         "codice_regione": 13,
+#         "denominazione_regione": "Abruzzo",
+#         "lat": 42.35122196,
+#         "long": 13.39843823,
+#         "ricoverati_con_sintomi": 484,
+#         "terapia_intensiva": 43,
+#         "totale_ospedalizzati": 527,
+#         "isolamento_domiciliare": 8804,
+#         "totale_positivi": 9331,
+#         "variazione_totale_positivi": 436,
+#         "nuovi_positivi": 584,
+#         "dimessi_guariti": 4592,
+#         "deceduti": 596,
+#         "casi_da_sospetto_diagnostico": 7615,
+#         "casi_da_screening": 6904,
+#         "totale_casi": 14519,
+#         "tamponi": 315128,
+#         "casi_testati": 193373,
+#         "note": "Dal totale dei positivi è stato eliminato 1 caso in quanto paziente non covid."
+# }
